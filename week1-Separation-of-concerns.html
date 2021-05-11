@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 1 Separation of concerns</title>
+    <script src="https://kit.fontawesome.com/7eb89f4114.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <span class="title">商品管理</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <table>
+                    <thead>
+                        <th>產品名稱</th>
+                        <th>原價</th>
+                        <th>售價</th>
+                        <th>折扣%數</th>
+                        <th>啟用</th>
+                        <th>修改</th>
+                        <th>刪除</th>
+                    </thead>
+                    <tbody id="tbody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col col_input_div">
+
+                <div class="div_add_remove_all">
+                    <input type="button" value="新增" id="add_new">
+                    <input type="button" value="全部刪除" id="remove_all">
+                </div>
+
+                <div id="input_div">
+                    <p>
+                        <label for="product_name">產品名稱</label>
+                        <input type="text" id="product_name" placeholder="產品名稱">
+                    </p>
+
+                    <p>
+                        <label for="origin_price">原價</label>
+                        <input type="text" id="origin_price" placeholder="原價">
+                    </p>
+
+                    <p>
+                        <label for="price">售價</label>
+                        <input type="text" id="price" placeholder="售價">
+                    </p>
+
+                    <p>
+                        <label for="discount">折扣</label>
+                        <input type="text" id="discount" placeholder="折扣">
+                    </p>
+
+                    <p>
+                        <input type="button" value="確定" id="check">
+                    </p>
+                    <p>
+                        <input type="button" value="取消" id="cancel">
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 把輸入的資料放到畫面上
+        function add() {
+            data.push(obj);
+            render(data);
+            Object.keys(obj).forEach(item => {
+                obj[item] = '';
+            })
+        };
+
+        // 開啟輸入資料的欄位
+        function open_model() {
+            input_div.style.display = 'block';
+        }
+
+        // 關閉輸入資料的欄位
+        function close_model() {
+            input_div.style.display = 'none';
+        }
+
+        // 是 否 啟用的切換CSS
+        function checkbox_use(e) {
+            if (e.target.checked) {
+                e.target.parentNode.childNodes[1].childNodes[0].removeAttribute('class', 'checked_use');
+                e.target.parentNode.childNodes[1].childNodes[0].setAttribute('class', 'checked_use');
+
+                e.target.parentNode.childNodes[1].childNodes[1].removeAttribute('class', 'checked_no_use');
+                e.target.parentNode.childNodes[1].childNodes[1].setAttribute('class', 'checked_no_use');
+
+            } else {
+                e.target.parentNode.childNodes[1].childNodes[0].removeAttribute('class', 'checked_use');
+                e.target.parentNode.childNodes[1].childNodes[0].setAttribute('class', 'use');
+
+                e.target.parentNode.childNodes[1].childNodes[1].removeAttribute('class', 'checked_no_use');
+                e.target.parentNode.childNodes[1].childNodes[1].setAttribute('class', 'no_use');
+            }
+        }
+
+        // 刪除單筆資料
+        function remove(e) {
+            let removed_index = 0;
+            tbody.childNodes.forEach((item, index) => {
+                if (e.target.id === item.id) {
+                    removed_index = index;
+                }
+            })
+            tbody.removeChild(tbody.childNodes[removed_index]);
+            render(data);
+        }
+
+        // 刪除全部資料
+        function remove_all() {
+            let last_node = tbody.lastElementChild;
+            while (last_node) {
+                tbody.removeChild(last_node);
+                last_node = tbody.lastElementChild;
+            }
+            render(data);
+        }
+
+        // 按下輸入框 按鈕要觸發的函式 (未驗證)
+        function btn_function(e) {
+            switch (e.target.id) {
+                case 'add_new':
+                    open_model();
+                    break;
+                case 'remove_all':
+                    remove_all();
+                    break;
+                case 'product_name':
+                    e.target.addEventListener('change', (e) => {
+                        obj.name = e.target.value || '商品名稱';
+                    })
+                    break;
+                case 'origin_price':
+                    e.target.addEventListener('change', (e) => {
+                        obj.origin_price = e.target.value || 0;
+                    })
+                    break;
+                case 'price':
+                    e.target.addEventListener('change', (e) => {
+                        obj.price = e.target.value || 0;
+                    })
+                    break;
+                case 'discount':
+                    e.target.addEventListener('change', (e) => {
+                        obj.discount = e.target.value || 0;
+                    })
+                    break;
+
+                case 'cancel':
+                    close_model();
+                    break;
+
+                case 'check':
+                    obj.id = Date.now();
+                    obj.use = false;
+                    e.target.parentNode.parentNode.childNodes.forEach((item, index) => {
+                        if (index % 2 == 1 && index < 8) {
+                            item.childNodes[3].value = '';
+                        }
+                    })
+                    add();
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        // 把輸入資料傳進來 放到產生的模板上
+        function render(data) {
+            // 創造表格節點
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            const i = document.createElement('i');
+
+            // 取得最後一筆 避免重複
+            let newdata = data.splice(data.length - 1, 1);
+
+            newdata.forEach(item => {
+                // 產品名稱的td
+                const textnode_name = td.cloneNode(true);
+                textnode_name.appendChild(document.createTextNode(`${item.name}`));
+                // 原始價格的td
+                const textnode_origin = td.cloneNode(true);
+                textnode_origin.appendChild(document.createTextNode(`${item.origin_price}`));
+                // 最終價格的td
+                const textnode_price = td.cloneNode(true);
+                textnode_price.appendChild(document.createTextNode(`${item.price}`));
+                // 折扣的td
+                const textnode_discount = td.cloneNode(true);
+                textnode_discount.appendChild(document.createTextNode(`${item.discount}`));
+
+                // 產生 是 否 按鈕的模板
+                // 是 否 checkbox的容器
+                const div = document.createElement('div');
+
+                // checkbox的產生以及屬性設定
+                const checkbox = document.createElement('input');
+                checkbox.setAttribute('type', 'checkbox');
+                checkbox.setAttribute('id', `${Date.now()+1}`);
+                checkbox.setAttribute('class', 'use_checkbox');
+                checkbox.addEventListener('click', checkbox_use, false);
+
+                // 是 否 的容器
+                const p = document.createElement('p');
+
+                // 是 的label產生及屬性設定
+                const label_use = document.createElement('label');
+                label_use.setAttribute('for', `${Date.now()+1}`);
+                label_use.setAttribute('class', 'use');
+                label_use.textContent = '是';
+
+                // 否 的label產生及屬性設定
+                const label_no_use = document.createElement('label');
+                label_no_use.setAttribute('for', `${Date.now()+1}`);
+                label_no_use.setAttribute('class', 'no_use');
+                label_no_use.textContent = '否';
+
+                // 把 checkbox 及 p 容器加到 div 容器裡面
+                div.appendChild(checkbox);
+                div.appendChild(p);
+                // 把 是 否 加到 p 容器裡面
+                p.appendChild(label_use);
+                p.appendChild(label_no_use);
+
+                // 是 否 按鈕加到td裡面
+                const btn_use = td.cloneNode(true);
+                btn_use.appendChild(div);
+
+                // 編輯 icon 的產生及屬性設定
+                const icon_edit = i.cloneNode(true);
+                icon_edit.setAttribute('class', 'fas fa-pencil-alt');
+
+                // 編輯 icon 加到td裡面
+                const btn_edit = td.cloneNode(true);
+                btn_edit.appendChild(icon_edit);
+
+                // 刪除 icon 的產生及屬性設定
+                const icon_remove = i.cloneNode(true);
+                icon_remove.setAttribute('class', 'fas fa-trash-alt');
+                // 刪除 icon 加上 id
+                icon_remove.setAttribute('id', `${item.id}`);
+
+                // 刪除 icon 加到td裡面
+                const btn_remove = td.cloneNode(true);
+                btn_remove.appendChild(icon_remove);
+
+                // 在刪除 icon 掛上事件傾聽
+                btn_remove.addEventListener('click', remove, false);
+
+                // 在tr上面設定id屬性
+                tr.setAttribute('id', `${item.id}`);
+
+                // 把上面全部的td加到tr裡面
+                tr.appendChild(textnode_name);
+                tr.appendChild(textnode_origin);
+                tr.appendChild(textnode_price);
+                tr.appendChild(textnode_discount);
+                tr.appendChild(btn_use);
+                tr.appendChild(btn_edit);
+                tr.appendChild(btn_remove);
+            });
+
+            // 把做好的tr加到tbody裡面
+            tbody.appendChild(tr);
+        }
+
+        const tbody = document.querySelector('#tbody');
+        const col_input_div = document.querySelector('.col_input_div');
+        let data = [];
+        let obj = {
+            id: '',
+            name: '',
+            origin_price: '',
+            price: '',
+            discount: '',
+            use: false
+        };
+
+        // 把右邊輸入資料區的容器加上事件傾聽
+        col_input_div.addEventListener('click', btn_function, false);
+        
+    </script>
+</body>
+
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #89d2ba;
+    }
+
+    th,
+    td {
+        width: 100px;
+        height: 40px;
+        text-align: center;
+    }
+
+    .use {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border-radius: 50% 0 0 50%;
+        text-align: center;
+        line-height: 24px;
+        background: linear-gradient(to top, #9be15d 0%, #00e3ae 100%);
+        margin: 0 5px 0 0;
+        box-shadow: 0px 2px 10px #000000;
+    }
+
+    .no_use {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border-radius: 0 50% 50% 0;
+        box-shadow: 0px 5px 10px #000000;
+        transform: translate(0, -5px);
+        text-align: center;
+        line-height: 24px;
+        background: linear-gradient(to top, #ff0844 0%, #ffb199 100%);
+    }
+
+    .use_p {
+        display: flex;
+        flex-wrap: nowrap;
+    }
+
+    .use_checkbox {
+        display: none;
+    }
+
+    .checked_no_use {
+        box-shadow: 0px 2px 10px #000000;
+        transform: translate(0, 0);
+        background: linear-gradient(to top, #ff0844 0%, #ffb199 100%);
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border-radius: 0 50% 50% 0;
+        text-align: center;
+        line-height: 24px;
+    }
+
+    .checked_use {
+        box-shadow: 0px 5px 10px #000000;
+        transform: translate(0, -5px);
+        background: linear-gradient(to top, #9be15d 0%, #00e3ae 100%);
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border-radius: 50% 0 0 50%;
+        text-align: center;
+        line-height: 24px;
+        margin: 0 5px 0 0;
+    }
+
+
+    .container {
+        width: 100%;
+    }
+
+    .row {
+        width: 80%;
+        margin: 20px auto;
+        display: flex;
+        align-items: flex-start;
+        border-radius: 10px;
+    }
+
+    .col {
+        border: 2px solid #edd29f;
+        margin: 0 auto;
+        border-radius: 10px;
+    }
+
+    .col:nth-child(1) {
+        width: 70%;
+    }
+
+    .col:nth-child(2) {
+        width: 30%;
+    }
+
+    .col_input_div {
+        position: relative;
+    }
+
+    .title {
+        font-size: 36px;
+        display: block;
+        text-align: center;
+    }
+
+    #input_div {
+        display: none;
+        position: absolute;
+        width: 100%;
+        border: 2px solid #edd29f;
+        border-radius: 10px;
+    }
+
+    #input_div p {
+        margin: 10px;
+    }
+
+    #input_div p input {
+        height: 50px;
+        width: 100%;
+        border-radius: 10px;
+        border: none;
+        font-size: 24px;
+        padding: 10px;
+    }
+
+    input[type="button"] {
+        width: 100px;
+        height: 40px;
+        border-radius: 4px;
+        font-size: 16px;
+        border: none;
+        background: #ffffff;
+    }
+
+    .div_add_remove_all {
+        display: flex;
+        justify-content: space-evenly;
+    }
+
+    #check {
+        background: #85ff85;
+    }
+
+    #cancel {
+        background: #ffb0b0;
+    }
+</style>
+
+</html>

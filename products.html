@@ -63,7 +63,7 @@
         },
         logout() {
             axios.post(`${app.data.api}/logout`).then(res => {
-                window.location.assign("/API.html");                
+                window.location.assign("https://qoo584769.github.io/API.html");                
             })
         },
         init() {
@@ -74,7 +74,7 @@
                 if (res.data.success) {
                     return this.getdata();
                 } else {
-                    window.location.assign('/API.html');
+                    window.location.assign('https://qoo584769.github.io/API.html');
                 }
             });
             btn_logout.addEventListener('click', this.logout);

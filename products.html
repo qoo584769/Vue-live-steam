@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>產品頁面</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+
+</head>
+
+<body>
+    <input type="button" value="登出" id="logout">
+    <table>
+        <thead>
+            <th width="200">產品名稱</th>
+            <th width="100">原價</th>
+            <th width="100">售價</th>
+            <th width="100">啟用</th>
+            <th width="100">刪除</th>
+        </thead>
+        <tbody id="tbody">
+
+        </tbody>
+    </table>
+</body>
+
+<script>
+    const app = {
+        data: {
+            products: [],
+            api: 'https://vue3-course-api.hexschool.io',
+            path: 'vue-live',
+        },
+        getdata() {
+            axios.get(`${this.data.api}/api/${this.data.path}/admin/products?`).then(res => {
+                if (res.data.success) {
+                    this.data.products = res.data.products;
+                    this.render();
+                }
+            })
+        },
+        render() {
+            const tbody = document.querySelector('#tbody');
+            const template = this.data.products.map(item => `
+                <tr>
+                    <td>${item.title}</td>
+                    <td>${item.origin_price}</td>
+                    <td>${item.price}</td>
+                    <td>${item.is_enabled?'已啟用':'未啟用'}</td>
+                    <td><input type="button" value="刪除" data-id=${item.id}></td>
+                </tr>
+                `).join('');
+            tbody.addEventListener('click', this.remove);
+            tbody.innerHTML = template;
+        },
+        remove(e) {
+            axios.delete(`${app.data.api}/api/${app.data.path}/admin/product/${e.target.dataset.id}`)
+                .then(res => {
+                    app.getdata();
+                });
+        },
+        logout() {
+            axios.post(`${app.data.api}/logout`).then(res => {
+                window.location.assign("/API.html");                
+            })
+        },
+        init() {
+            const btn_logout = document.querySelector('#logout');
+            const token = document.cookie.replace(/(?:(?:^|.*;\s*)henToken\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+            axios.defaults.headers.common['Authorization'] = token;
+            axios.post(`${this.data.api}/api/user/check`).then(res => {
+                if (res.data.success) {
+                    return this.getdata();
+                } else {
+                    window.location.assign('/API.html');
+                }
+            });
+            btn_logout.addEventListener('click', this.logout);
+        },
+    };
+    app.init();
+</script>
+
+<style>
+#logout{
+    display: block;
+    margin: auto;
+}
+table{
+    text-align: center;
+    margin: auto;
+}
+</style>
+
+</html>

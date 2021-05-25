@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VUE week3 dashboard</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="btn-block">
+            <button id="new" @click.prevent="ChangeModalStatus(true)">
+                建立新的產品
+            </button>
+            <button id="logout">登出</button>
+        </div>
+        <table>
+            <thead>
+                <th width="150">分類</th>
+                <th width="150">產品名稱</th>
+                <th width="100">原價</th>
+                <th width="100">售價</th>
+                <th width="100">是否啟用</th>
+                <th width="100">編輯</th>
+                <th width="100">刪除</th>
+            </thead>
+            <tbody id="tbody">
+                <template v-for="(item,index) in render" :key="item.id">
+                    <tr>
+                        <td>{{item.category}}</td>
+                        <td>{{item.title}}</td>
+                        <td>{{item.origin_price}}</td>
+                        <td>{{item.price}}</td>
+                        <td>{{item.is_enabled ? "已啟用" : "未啟用"}}</td>
+                        <td>
+                            <input type="button" value="編輯" @click.prevent="ChangeModalStatus(false,item)" />
+                        </td>
+                        <td><input type="button" value="刪除" :data-id="item.id" @click.prevent="DeleteDate" /></td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+        <div class="modal-container" v-if="modal_sataus">
+            <div class="modal">
+                <form @click.prevent="">
+                    <label for="">名稱</label><input type="text" id="title" v-model="temp_data.data.title" />
+
+                    <label for="">分類</label><input type="text" id="category" v-model="temp_data.data.category" />
+
+                    <label for="">單位</label><input type="text" id="unit" v-model="temp_data.data.unit" />
+
+                    <label for="">原價</label><input type="number" min="0" id="origin_price"
+                        v-model.number="temp_data.data.origin_price" />
+
+                    <label for="">售價</label><input type="number" min="0" id="price"
+                        v-model.number="temp_data.data.price" />
+
+                    <button id="cancel" @click.prevent="ChangeModalStatus(false)">取消</button>
+                    <button id="check" @click.prevent="CreateEditData">確定</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    const {
+        ref,
+        reactive,
+        onMounted,
+        computed
+    } = Vue;
+
+    const App = {
+        setup() {
+            //   API路徑
+            const api = ref("https://vue3-course-api.hexschool.io");
+            const path = ref("vue-live");
+            // modal布林值
+            const modal_sataus = ref(false);
+            // 判斷是編輯還是新增
+            const is_new = ref(false);
+            // 取得回來的資料
+            const product_data = reactive({
+                products: [],
+            });
+            // modal暫存資料
+            let temp_data = reactive({});
+
+            // computed
+            // 渲染畫面
+            const render = computed(() => {
+                const map = product_data.products.map((item) => {
+                    return {
+                        category: `${item.category}`,
+                        title: `${item.title}`,
+                        origin_price: `${item.origin_price}`,
+                        price: `${item.price}`,
+                        is_enabled: `${item.is_enabled}`,
+                        unit: `${item.unit}`,
+                        id: `${item.id}`,
+                    };
+                });
+                return map;
+            });
+
+            // methods
+            // 開modal
+            const ChangeModalStatus = (isnew, item) => {
+                if (isnew) {
+                    is_new.value = isnew;
+                    temp_data.data = {
+                        title: "",
+                        category: "",
+                        origin_price: 0,
+                        price: 0,
+                        unit: "",
+                        description: "Sit down please 名設計師設計",
+                        content: "這是內容",
+                        is_enabled: 1,
+                        imageUrl: "主圖網址",
+                        imagesUrl: [
+                            "圖片網址一",
+                            "圖片網址二",
+                            "圖片網址三",
+                            "圖片網址四",
+                            "圖片網址五",
+                        ],
+                    };
+                    console.log(temp_data);
+                } else {
+                    is_new.value = isnew;
+                    temp_data.data = {
+                        ...item
+                    };
+                }
+                modal_sataus.value = !modal_sataus.value;
+            };
+
+            // 取得資料
+            const GetData = () => {
+                axios
+                    .get(`${api.value}/api/${path.value}/admin/products?`)
+                    .then((res) => {
+                        if (res.data.success) {
+                            product_data.products = res.data.products;
+                            return
+                        }
+                    })
+            };
+
+            // 新增 編輯資料
+            const CreateEditData = () => {
+                if (is_new.value) {
+                    axios
+                        .post(`${api.value}/api/${path.value}/admin/product`, temp_data)
+                        .then((res) => {
+                            if (res.data.success) {
+                                GetData();
+                                ChangeModalStatus();
+                                return
+                            }
+                            console.log(res.data.message);
+                        });
+                } else {
+                    axios
+                        .put(
+                            `${api.value}/api/${path.value}/admin/product/${temp_data.data.id}`,
+                            temp_data
+                        )
+                        .then((res) => {
+                            if (res.data.success) {
+                                GetData();
+                                ChangeModalStatus();
+                                return
+                            }
+                            console.log(res.data.message);
+                        });
+                }
+            };
+
+            // 刪除
+            const DeleteDate = (e) => {
+                axios.delete(`${api.value}/api/${path.value}/admin/product/${e.target.dataset.id}`)
+                    .then(res => {
+                        if (res.data.success) {
+                            GetData();
+                            return
+                        }
+                        console.log(res.data.message);
+                    });
+            };
+
+            // 登出
+            const logout = () => {
+                axios.post(`${api.value}/logout`).then((res) => {
+                    document.cookie = `henToken=${token};expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+                    window.location.assign("./VUE-week3-login.html");
+                });
+            };
+
+            // 進入畫面初始化用
+            const init = () => {
+                const btn_logout = document.querySelector("#logout");
+                btn_logout.addEventListener("click", logout);
+
+                const token = document.cookie.replace(
+                    /(?:(?:^|.*;\s*)henToken\s*\=\s*([^;]*).*$)|^.*$/,
+                    "$1"
+                );
+
+                axios.defaults.headers.common["Authorization"] = token;
+                axios.post(`${api.value}/api/user/check`).then((res) => {
+                    if (res.data.success) {
+                        return GetData();
+                    }
+                    window.location.assign("./VUE-week3-login.html");
+                });
+            };
+
+            onMounted(() => {
+                init();
+            });
+
+            return {
+                modal_sataus,
+                ChangeModalStatus,
+                render,
+                temp_data,
+                CreateEditData,
+                DeleteDate,
+            };
+        },
+    };
+
+    Vue.createApp(App).mount("#app");
+</script>
+
+<style>
+    table {
+        text-align: center;
+        margin: auto;
+    }
+
+    .btn-block {
+        display: flex;
+        justify-content: center;
+    }
+
+    .modal-container {
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.644);
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .modal {
+        margin: 100px auto;
+        max-width: 1140px;
+        width: 40%;
+    }
+
+    .modal>form {
+        display: flex;
+        flex-direction: column;
+        color: #fff;
+    }
+</style>
+
+</html>

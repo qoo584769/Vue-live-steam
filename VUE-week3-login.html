@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <form action="" class="login-form">
+            <label for="account">帳號</label>
+            <input type="text" id="account" />
+
+            <label for="password">密碼</label>
+            <input type="password" id="password" />
+
+            <br />
+
+            <input type="button" value="登入" id="btn_login" />
+        </form>
+    </div>
+</body>
+
+<script>
+    const {
+        ref,
+        reactive,
+        onMounted
+    } = Vue;
+
+    const App = {
+        setup() {
+            const api = ref("https://vue3-course-api.hexschool.io");
+            const path = ref("vue-live");
+            const data = reactive({
+                username: "",
+                password: "",
+            });
+
+            const login = (e) => {
+                data.username = document.querySelector("#account").value;
+                data.password = document.querySelector("#password").value;
+
+                if (data.username !== '' && data.password !== '') {
+                    axios.post(`${api.value}/admin/signin`, data)
+                        .then((res) => {
+                            console.log(res);
+                            const { token,expired} = res.data;
+                            document.cookie = `henToken=${token};expires=${new Date(expired)}`;
+                            if(res.data.success){
+                                window.location.assign("./VUE-week3-dashboard.html");
+                                return
+                            }
+                            alert(`${res.data.message}`);
+                        })
+                }else{
+                    alert("帳號密碼為必填");
+                }
+            };
+
+            onMounted(() => {
+                const btn_login = document.querySelector("#btn_login");
+                btn_login.addEventListener("click", login);
+            });
+
+            return {};
+        },
+    };
+
+    Vue.createApp(App).mount("#app");
+</script>
+
+<style>
+    * {
+        padding: none;
+        margin: none;
+    }
+
+    .login-form {
+        width: 30%;
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+
+</html>

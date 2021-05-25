@@ -196,8 +196,12 @@
 
             // 登出
             const logout = () => {
+                const token = document.cookie.replace(
+                    /(?:(?:^|.*;\s*)henToken\s*\=\s*([^;]*).*$)|^.*$/,
+                    "$1"
+                );
                 axios.post(`${api.value}/logout`).then((res) => {
-                    document.cookie = `henToken=${token};expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+                    document.cookie = `henToken=${token};expires=${new Date(57600)};`;
                     window.location.assign("./VUE-week3-login.html");
                 });
             };

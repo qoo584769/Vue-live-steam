@@ -20,8 +20,8 @@
         </div>
         <table>
             <thead>
-                <th width="150">分類</th>
                 <th width="150">產品名稱</th>
+                <th width="150">分類</th>
                 <th width="100">原價</th>
                 <th width="100">售價</th>
                 <th width="100">是否啟用</th>
@@ -31,8 +31,8 @@
             <tbody id="tbody">
                 <template v-for="(item,index) in render" :key="item.id">
                     <tr>
-                        <td>{{item.category}}</td>
                         <td>{{item.title}}</td>
+                        <td>{{item.category}}</td>
                         <td>{{item.origin_price}}</td>
                         <td>{{item.price}}</td>
                         <td>{{item.is_enabled ? "已啟用" : "未啟用"}}</td>
@@ -47,17 +47,21 @@
         <div class="modal-container" v-if="modal_sataus">
             <div class="modal">
                 <form @click.prevent="">
-                    <label for="">名稱</label><input type="text" id="title" v-model="temp_data.data.title" />
+                    <label for="title">名稱</label><input type="text" id="title" v-model="temp_data.data.title" />
 
-                    <label for="">分類</label><input type="text" id="category" v-model="temp_data.data.category" />
+                    <label for="category">分類</label><input type="text" id="category" v-model="temp_data.data.category" />
 
-                    <label for="">單位</label><input type="text" id="unit" v-model="temp_data.data.unit" />
+                    <label for="unit">單位</label><input type="text" id="unit" v-model="temp_data.data.unit" />
 
-                    <label for="">原價</label><input type="number" min="0" id="origin_price"
+                    <label for="origin_price">原價</label><input type="text" id="origin_price"
                         v-model.number="temp_data.data.origin_price" />
+                    <!-- <label for="">原價</label><input type="number" min="0" id="origin_price"
+                        v-model.number="temp_data.data.origin_price" /> -->
 
-                    <label for="">售價</label><input type="number" min="0" id="price"
+                    <label for="price">售價</label><input type="text" id="price"
                         v-model.number="temp_data.data.price" />
+                    <!-- <label for="">售價</label><input type="number" min="0" id="price"
+                        v-model.number="temp_data.data.price" /> -->
 
                     <button id="cancel" @click.prevent="ChangeModalStatus(false)">取消</button>
                     <button id="check" @click.prevent="CreateEditData">確定</button>
@@ -166,6 +170,11 @@
                             console.log(res.data.message);
                         });
                 } else {
+                    // 無法解決原價售價在沒有點到輸入框的情況直接v-model轉成數字
+                    const origin_price = document.querySelector("#origin_price").value;
+                    const price = document.querySelector("#price").value;
+                    temp_data.data.origin_price = parseInt(origin_price,10);
+                    temp_data.data.price = parseInt(price,10);
                     axios
                         .put(
                             `${api.value}/api/${path.value}/admin/product/${temp_data.data.id}`,

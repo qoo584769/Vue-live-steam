@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VUE week3 dashboard</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="btn-block">
+            <button id="new" @click.prevent="ChangeModalStatus(true)">
+                建立新的產品
+            </button>
+            <button id="logout" @click="logout">登出</button>
+        </div>
+        <table>
+            <thead>
+                <th width="150">產品名稱</th>
+                <th width="150">分類</th>
+                <th width="100">原價</th>
+                <th width="100">售價</th>
+                <th width="100">是否啟用</th>
+                <th width="100">編輯</th>
+                <th width="100">刪除</th>
+            </thead>
+            <tbody id="tbody">
+                <template v-for="(item,index) in render" :key="item.id">
+                    <tr>
+                        <td>{{item.title}}</td>
+                        <td>{{item.category}}</td>
+                        <td>{{item.origin_price}}</td>
+                        <td>{{item.price}}</td>
+                        <td :class="{'enabled-color':item.is_enabled==1}">{{item.is_enabled==1 ? "已啟用" : "未啟用"}}</td>
+                        <td>
+                            <input type="button" value="編輯" @click.prevent="ChangeModalStatus(false,item)" />
+                        </td>
+                        <td><input type="button" value="刪除" :data-id="item.id" @click.prevent="DeleteDate" /></td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+
+        <modal :modal_status="modal_status" :temp_data="temp_data" @out_modal_status="ChangeModalStatus"
+            @upload="UploadImg" @out_create_edit_data="CreateEditData"></modal>
+
+        <page :pagination_data="pagination_data" @out_getdata="GetData"></page>
+
+        <!-- 原始模板 -->
+        <!-- <div class="modal-container" v-if="modal_status">
+            <div class="modal">
+                <form @click.prevent="">
+                    <label for="title">名稱</label><input type="text" id="title" v-model="temp_data.data.title" />
+
+                    <label for="category">分類</label><input type="text" id="category"
+                        v-model="temp_data.data.category" />
+
+                    <label for="unit">單位</label><input type="text" id="unit" v-model="temp_data.data.unit" />
+
+                    <label for="origin_price">原價</label><input type="text" id="origin_price"
+                        v-model.number="temp_data.data.origin_price" />
+                    下面是原本註解
+                    <label for="">原價</label><input type="number" min="0" id="origin_price"
+                        v-model.number="temp_data.data.origin_price" />
+
+                    <label for="price">售價</label><input type="text" id="price" v-model.number="temp_data.data.price" />
+                    下面是原本註解
+                    <label for="">售價</label><input type="number" min="0" id="price"
+                        v-model.number="temp_data.data.price" />
+
+                    <button id="cancel" @click.prevent="ChangeModalStatus(false)">取消</button>
+                    <button id="check" @click.prevent="CreateEditData">確定</button>
+                </form>
+            </div>
+        </div> -->
+    </div>
+</body>
+
+<script type="module">
+
+    const {
+        ref,
+        reactive,
+        onMounted,
+        computed,
+        watch,
+    } = Vue;
+
+    const App = Vue.createApp({
+        setup() {
+            //   API路徑
+            const api = ref("https://vue3-course-api.hexschool.io");
+            const path = ref("vue-live");
+            // modal布林值
+            const modal_status = ref(false);
+            // 判斷是編輯還是新增
+            const is_new = ref(false);
+            // 取得回來的資料
+            const product_data = reactive({
+                products: [],
+            });
+            // 取得頁碼
+            const pagination_data = reactive({
+                pagination:{},
+            })
+            // modal暫存資料
+            let temp_data = reactive({});
+
+            // computed
+            // 渲染畫面
+            const render = computed(() => {
+                const map = product_data.products.map((item) => {
+                    return {
+                        category: `${item.category}`,
+                        title: `${item.title}`,
+                        origin_price: `${item.origin_price}`,
+                        price: `${item.price}`,
+                        is_enabled: `${item.is_enabled}`,
+                        unit: `${item.unit}`,
+                        id: `${item.id}`,
+                        imageUrl:`${item.imageUrl}`
+                    };
+                });
+                return map;
+            });
+
+            // 渲染頁碼
+            const render_page = computed(() =>{
+                const map = pagination_data.pagination.map(item=>{
+                    return {
+                        current_page:`${item.current_page}`,
+                        has_next:`${item.has_next}`,
+                        has_pre:`${item.has_pre}`,
+                        total_pages:`${item.total_pages}`,
+                    };
+                });
+                return map;
+            });
+
+            // methods
+            // 開modal
+            const ChangeModalStatus = (isnew, item) => {
+                if (isnew) {
+                    is_new.value = isnew;
+                    temp_data.data = {
+                        title: "",
+                        category: "",
+                        origin_price: 0,
+                        price: 0,
+                        unit: "",
+                        description: "Sit down please 名設計師設計",
+                        content: "這是內容",
+                        is_enabled: 1,
+                        imageUrl: "",
+                        imagesUrl: [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                        ],
+                    };
+                } else {
+                    is_new.value = isnew;
+                    temp_data.data = {
+                        ...item
+                    };
+                }
+                modal_status.value = !modal_status.value;
+            };
+
+            // 取得資料
+            const GetData = (page=1) => {
+                axios
+                    .get(`${api.value}/api/${path.value}/admin/products?page=${page}`)
+                    .then((res) => {
+                        if (res.data.success) {
+                            product_data.products = res.data.products;
+                            pagination_data.pagination = res.data.pagination;
+                            return
+                        }
+                    }).catch(err=>{
+                            alert(err);
+                        })
+            };
+
+            // 新增 編輯資料
+            const CreateEditData = () => {
+                if (is_new.value) {
+                    axios
+                        .post(`${api.value}/api/${path.value}/admin/product`, temp_data)
+                        .then((res) => {
+                            if (res.data.success) {
+                                GetData();
+                                ChangeModalStatus();
+                                return
+                            }
+                        }).catch(err=>{
+                            alert(err);
+                        });
+                } else {
+                    // 無法解決原價售價在沒有點到輸入框的情況直接v-model轉成數字
+                    const origin_price = document.querySelector("#origin_price").value;
+                    const price = document.querySelector("#price").value;
+                    temp_data.data.origin_price = parseInt(origin_price,10);
+                    temp_data.data.price = parseInt(price,10);
+                    axios
+                        .put(
+                            `${api.value}/api/${path.value}/admin/product/${temp_data.data.id}`,
+                            temp_data
+                        )
+                        .then((res) => {
+                            if (res.data.success) {
+                                GetData();
+                                ChangeModalStatus();
+                                return
+                            }
+                        }).catch(err=>{
+                            alert(err);
+                        });
+                }
+            };
+
+            // 上傳圖片
+            const UploadImg = (formdata)=>{
+                axios.post(`${api.value}/api/${path.value}/admin/upload`,formdata)
+                .then(res=>{
+                    temp_data.data.imageUrl = res.data.imageUrl;
+                })
+            }
+
+            // 刪除
+            const DeleteDate = (e) => {
+                axios.delete(`${api.value}/api/${path.value}/admin/product/${e.target.dataset.id}`)
+                    .then(res => {
+                        if (res.data.success) {
+                            GetData();
+                            return
+                        }
+                        console.log(res.data.message);
+                    });
+            };
+
+            // 登出
+            const logout = () => {
+                const token = document.cookie.replace(
+                    /(?:(?:^|.*;\s*)henToken\s*\=\s*([^;]*).*$)|^.*$/,
+                    "$1"
+                );
+                axios.post(`${api.value}/logout`).then((res) => {
+                    document.cookie = `henToken=${token};expires=${new Date(57600)};`;
+                    window.location.assign("./Vue-week4-login.html");
+                });
+            };
+
+            // 進入畫面初始化用
+            const init = () => {
+                const token = document.cookie.replace(
+                    /(?:(?:^|.*;\s*)henToken\s*\=\s*([^;]*).*$)|^.*$/,
+                    "$1"
+                );
+               
+                axios.defaults.headers.common["Authorization"] = token;
+                axios.post(`${api.value}/api/user/check`).then((res) => {
+                    if (res.data.success) {
+                        return GetData();
+                    }
+                    window.location.assign("./Vue-week4-login.html");
+                });
+            };
+
+            onMounted(() => {
+                init();
+            });
+
+            return {
+                modal_status,
+                ChangeModalStatus,
+                GetData,
+                render,
+                temp_data,
+                pagination_data,
+                CreateEditData,
+                UploadImg,
+                DeleteDate,
+                logout,
+            };
+        },
+    });
+
+    // modal模板
+    App.component('modal',{
+        template:`<div class="modal-container" v-if="props.modal_status">
+            <div class="modal">
+                <form @click.prevent="">
+
+                    <div class="img-block">
+                        <label for="" class="">下面的選擇檔案 <br> 只能用拖的按了沒反應 <br> 輸入網址上傳未實作</label>
+                        <input ref="file" type="file" id="file" class="" @change="upload">
+                        <input type="text" v-model="temp_data.data.imageUrl" class="">
+                        <img :src="temp_data.data.imageUrl" alt="">
+                    </div>
+
+                    <div class="input-block">
+
+                        <label for="title">名稱</label><input type="text" id="title" v-model="temp_data.data.title" />
+
+                        <label for="category">分類</label><input type="text" id="category" v-model="temp_data.data.category" />
+
+                        <label for="unit">單位</label><input type="text" id="unit" v-model="temp_data.data.unit" />
+                        
+                        <label for="">原價</label><input type="number" min="0" id="origin_price"
+                            v-model.number="temp_data.data.origin_price" />
+                        
+                        <label for="">售價</label><input type="number" min="0" id="price"
+                            v-model.number="temp_data.data.price" />
+
+                        <label for="">是否啟用</label><input type="number" min="0" max="1" id="is_enabled"
+                            v-model.number="temp_data.data.is_enabled" />
+
+                    </div>
+
+                    <div class="modal_btn">
+                        <button id="cancel" @click.prevent="modal_status(false)">取消</button>
+                        <button id="check" @click.prevent="CreateEditData">確定</button>
+                    </div>
+                </form>
+            </div>
+        </div>`,
+
+        props:{
+            modal_status:{
+                type:Boolean,
+                default:false,
+            },
+            temp_data:{
+                type:Object,
+                default:()=>{}
+            }
+        },
+        setup(props, { emit }){
+            const file = ref(null);
+
+            const modal_status = (status)=>{
+                emit("out_modal_status",status);
+            };
+
+            const CreateEditData = (temp_data)=>{
+                if(props.temp_data.data.title !== '' || props.temp_data.data.category !== '' || props.temp_data.data.unit !== '' || props.temp_data.data.origin_price !== '' || props.temp_data.data.price !== '' ){
+                    emit("out_create_edit_data",temp_data);
+                }
+                else{
+                    alert("名稱 分類 單位 原價 售價 為必填欄位")
+                }
+            };
+            
+            const upload = ()=>{
+                const file_location = file.value.files[0];
+                const form_data = new FormData();
+                form_data.append('file-to-upload',file_location);
+                emit("upload",form_data);
+            };
+
+            return {
+                props,
+                modal_status,
+                CreateEditData,
+                upload,
+                file,
+            }
+        }
+    });
+        
+    // 頁碼模板
+    App.component('page',{
+        template:`
+            <div class="page">
+                <button :disabled = "props.pagination_data.pagination.has_pre == false" @click.prevent="page_GetData(props.pagination_data.pagination.current_page - 1)">上一頁</button>
+                <button class="page_num" v-for="item in props.pagination_data.pagination.total_pages" :key="item" :class="{'active' : item == props.pagination_data.pagination.current_page}" @click.prevent="page_GetData(item)">{{item}}</button>
+                <button class="next" :disabled = "props.pagination_data.pagination.has_next == false" @click.prevent="page_GetData(props.pagination_data.pagination.current_page + 1)">下一頁</button>
+            </div>
+        `,
+        props:{
+            pagination_data:{
+                type:Object,
+                default:()=>{
+                    return {};
+                },
+            }
+        },
+        setup(props,{emit}){
+
+            const page_GetData = (item)=>{
+                // 換頁
+                if(item !== props.pagination_data.pagination.current_page){
+                    // 傳出去的名稱不能有大寫 標籤的名稱一律小寫 不然就要加上一橫 aaa-vvv
+                    emit("out_getdata",item);
+                }
+
+            };
+
+            return {
+                props,
+                page_GetData,
+            }
+        }
+    })
+
+    App.mount("#app");
+</script>
+
+<style>
+    table {
+        text-align: center;
+        margin: auto;
+    }
+
+    .enabled-color {
+        color: aqua;
+    }
+
+    /* modal按鈕 */
+    .btn-block {
+        display: flex;
+        justify-content: center;
+    }
+
+    .modal-container {
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.644);
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .modal {
+        margin: 100px auto;
+        max-width: 1140px;
+        width: 40%;
+    }
+
+    .modal_btn {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    form {
+        display: flex;
+        /* flex-direction: column; */
+        flex-wrap: wrap;
+        color: #fff;
+    }
+
+    /* modal輸入 */
+    .input-block {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .img-block,
+    .input-block {
+        width: 50%;
+    }
+
+    .img-block img {
+        width: 100%;
+        height: auto;
+    }
+
+    .page {
+        display: flex;
+        justify-content: center;
+    }
+
+    .page button {
+        padding: 0 8px;
+        margin: 8px;
+        border: none;
+        background: #f1f1f1;
+    }
+
+    .active {
+        background: #000 !important;
+        color: #fff;
+    }
+</style>
+
+</html>

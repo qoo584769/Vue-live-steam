@@ -349,12 +349,12 @@
                 emit("out_modal_status",status);
             };
 
-            const CreateEditData = (temp_data)=>{
-                if(props.temp_data.data.title !== '' || props.temp_data.data.category !== '' || props.temp_data.data.unit !== '' || props.temp_data.data.origin_price !== '' || props.temp_data.data.price !== '' ){
-                    emit("out_create_edit_data",temp_data);
+            const CreateEditData = ()=>{
+                if(props.temp_data.data.title != '' || props.temp_data.data.category != '' || props.temp_data.data.unit != '' || props.temp_data.data.origin_price != '' || props.temp_data.data.price != '' ){
+                    emit("out_create_edit_data",props.temp_data);
                 }
                 else{
-                    alert("名稱 分類 單位 原價 售價 為必填欄位")
+                    alert("名稱 分類 單位 原價 售價 為必填欄位");
                 }
             };
             

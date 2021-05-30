@@ -350,7 +350,7 @@
             };
 
             const CreateEditData = ()=>{
-                if(props.temp_data.data.title != '' || props.temp_data.data.category != '' || props.temp_data.data.unit != '' || props.temp_data.data.origin_price != '' || props.temp_data.data.price != '' ){
+                if(props.temp_data.data.title != '' && props.temp_data.data.category != '' && props.temp_data.data.unit != '' && props.temp_data.data.origin_price != '' && props.temp_data.data.price != '' ){
                     emit("out_create_edit_data",props.temp_data);
                 }
                 else{

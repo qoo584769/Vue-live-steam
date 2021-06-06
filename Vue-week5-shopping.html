@@ -252,13 +252,8 @@
             // const modal_dom = document.querySelector('.modal-more');
 
             // --------方法---------
-            // 開modal
-            const modal_open = ()=>{
-                modal_dom.style.display="block";
-            };
             // 關modal
             const modal_close = ()=>{
-                // modal_dom.style.display="none";
                 statusmodal.value = false;
             };
             // 取得客戶端商品資料
@@ -306,6 +301,7 @@
                             statusid.addcart = '';
                             iconloading.value = false;
                             GetCart();
+                            statusmodal.value = false;
                             return
                         }
                         alert(res.data.message);

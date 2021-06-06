@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <!-- 讀取套件 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@4.0.3/dist/vue-loading.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@4.0.3/dist/vue-loading.min.js"></script>
+    <!-- 驗證套件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vee-validate/4.1.17/vee-validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vee-validate/i18n@4.1.17/dist/vee-validate-i18n.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vee-validate/rules@4.1.17/dist/vee-validate-rules.min.js"></script>
+    <!-- BS5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous">
+    </script>
+
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/css/all.min.css'
+        integrity='sha512-q3eWabyZPc1XTCmF+8/LuE1ozpg5xxn7iO89yfSOd5/oKvyqLngoNGsx8jq92Y8eXJ/IRxQbEC+FGSYxtk2oiw=='
+        crossorigin='anonymous' />
+</head>
+
+<body>
+    <div id="app">
+        <loading :active="isloading"></loading>
+
+        <div class="modal-more" v-if="statusmodal">
+            <div class="container">
+                <div class="row">
+                    <div class="col">
+                        <div class=""><img :src="modal_data.modal.imageUrl" alt=""></div>
+                    </div>
+                    <div class="col">
+                        <div class="">商品名稱 : {{modal_data.modal.title}}</div>
+                        <div class="">商品內容 : {{modal_data.modal.content}}</div>
+                        <div class="">商品描述 : {{modal_data.modal.description}}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="">
+                            <input type="number" min="1" v-model.number="cart_data.data.qty">
+                            <button type="button" class="btn btn-primary"
+                                @click.prevent="AddToCart(modal_data.modal.id)">
+                                <i class="fas fa-spinner fa-pulse" v-if="statusid.addcart"></i>
+                                加入購物車
+                            </button>
+                            <button type="button" class="btn btn-secondary" @click.prevent="modal_close">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+                <th width="150">圖片</th>
+                <th>商品名稱</th>
+                <th>價格</th>
+            </thead>
+            <tbody>
+                <template v-for="item in product_data.products" :key="item.id">
+                    <tr>
+                        <td><img :src="item.imageUrl" alt=""></td>
+                        <td>{{item.title}}</td>
+                        <td>
+                            <span class="d-block"
+                                :class="{'text-decoration-line-through': item.price}">{{item.origin_price}}</span>
+                            <span class="d-block" v-if="item.price">{{item.price}}</span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-secondary"
+                                @click.prevent="GetSingleDetailCustomer(item.id)">
+                                <i class="fas fa-spinner fa-pulse" v-if="statusid.seemore == item.id"></i>
+                                看更多
+                            </button>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-primary" @click.prevent="AddToCart(item.id)">
+                                <i class="fas fa-spinner fa-pulse" v-if="statusid.addcart == item.id"></i>
+                                加入購物車
+                            </button>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+
+        <table class="table">
+            <thead>
+                <th>商品名稱</th>
+                <th>數量/單位</th>
+                <th>更改數量</th>
+                <th>單價</th>
+                <th>
+                    <button type="button" class="btn btn-danger" @click.prevent="DelCart(1)">
+                        <i class="fas fa-spinner fa-pulse" v-if="statusid.clearcart"></i>
+                        清空購物車
+                    </button>
+                </th>
+            </thead>
+            <tbody>
+                <template v-for="item in cart_list_data.data.carts" :key="item.id">
+                    <tr>
+                        <td>{{item.product.title}}</td>
+                        <td><input type="number" min="1" v-model.number="item.qty">/{{item.product.unit}}</td>
+                        <td>
+                            <button type="button" class="btn btn-secondary" @click.prevent="UpdateCart(item)">
+                                <i class="fas fa-spinner fa-pulse" v-if="statusid.updatecart == item.id"></i>
+                                更改商品數量
+                            </button>
+                        </td>
+                        <td>{{item.total}}</td>
+                        <td><button type="button" class="btn btn-danger" @click.prevent="DelCart(item.id)">
+                                <i class="fas fa-spinner fa-pulse" v-if="statusid.deleteitem == item.id"></i>
+                                刪除商品
+                            </button>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td>總計 : {{cart_list_data.data.final_total}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <v-form v-slot="{ errors }" @submit="Checkout">
+
+            <label for="name">姓名</label>
+            <v-field id="name" name="姓名" type="text" class="form-control" :class="{ 'is-invalid': errors['姓名'] }"
+                placeholder="請輸入 姓名" rules="required" v-model="user_data.data.user.name"></v-field>
+            <error-message name="姓名" class="invalid-feedback"></error-message>
+
+            <label for="email">Email</label>
+            <v-field id="email" name="email" type="email" class="form-control"
+                :class="{ 'is-invalid': errors['email'] }" placeholder="請輸入 Email" rules="email|required"
+                v-model="user_data.data.user.email"></v-field>
+            <error-message name="email" class="invalid-feedback"></error-message>
+
+            <label for="tel">電話</label>
+            <v-field id="tel" name="電話" type="tel" class="form-control" :class="{ 'is-invalid': errors['電話'] }"
+                placeholder="請輸入 電話" :rules="ValidateTel" v-model="user_data.data.user.tel"></v-field>
+            <error-message name="電話" class="invalid-feedback"></error-message>
+
+            <label for="address">地址</label>
+            <v-field id="address" name="地址" type="text" class="form-control" :class="{ 'is-invalid': errors['地址'] }"
+                placeholder="請輸入 地址" rules="required" v-model="user_data.data.user.address"></v-field>
+            <error-message name="地址" class="invalid-feedback"></error-message>
+
+            <p>
+                <label for="message">備註</label>
+                <textarea id="message" v-model="user_data.data.message"></textarea>
+            </p>
+
+            <button type="submit" class="btn btn-primary" @submit.prevent="Checkout">
+                <i class="fas fa-spinner fa-pulse" v-if="statusid.checkout"></i>
+                結帳
+            </button>
+
+        </v-form>
+
+    </div>
+
+</body>
+<script>
+    // 把驗證套件規則全部載進來
+    Object.keys(VeeValidateRules).forEach(rule => {
+        if (rule !== 'default') {
+            VeeValidate.defineRule(rule, VeeValidateRules[rule]);
+        }
+    });
+
+    // 讓顯示的錯誤資訊是中文
+    VeeValidateI18n.loadLocaleFromURL('./zh_TW.json');
+    // Activate the locale
+    VeeValidate.configure({
+        generateMessage: VeeValidateI18n.localize('zh_TW'),
+        validateOnInput: true, // 調整為輸入字元立即進行驗證
+    });
+
+    const {
+        ref,
+        reactive,
+        onMounted,
+        computed,
+        watch,
+    } = Vue;
+
+    const app = Vue.createApp({
+        setup() {
+            // -----變數--------
+            //   API路徑
+            const api = ref("https://vue3-course-api.hexschool.io");
+            const path = ref("vue-live");
+            // 存頁碼
+            const page_data = reactive({
+                pagination: {},
+            });
+            // 存商品資料
+            const product_data = reactive({
+                products: [],
+            })
+            // 看更多的modal
+            const modal_data = reactive({
+                modal: {},
+            })
+            // 加入購物車的API參數
+            const cart_data = reactive({
+                data: {
+                    product_id: '',
+                    qty: 1,
+                }
+            });
+            // 購物車清單
+            const cart_list_data = reactive({
+                data: {}
+            })
+            // 結帳的收件者資料
+            const user_data = reactive({
+                data: {
+                    user: {
+                        name: '',
+                        email: '',
+                        tel: '',
+                        address: '',
+                    },
+                    message: '',
+                }
+            });
+            // 讀取效果-vueloading
+            const isloading = ref(false);
+            // 讀取效果-icon
+            const iconloading = ref(false);
+            // 用在判斷icon狀態讀取的id
+            const statusid = reactive({
+                seemore: '',
+                addcart: '',
+                updatecart: '',
+                clearcart: '',
+                deleteitem: '',
+                checkout: '',
+            });
+
+            const statusmodal = ref(false);
+            // const modal_dom = document.querySelector('.modal-more');
+
+            // --------方法---------
+            // 開modal
+            const modal_open = ()=>{
+                modal_dom.style.display="block";
+            };
+            // 關modal
+            const modal_close = ()=>{
+                // modal_dom.style.display="none";
+                statusmodal.value = false;
+            };
+            // 取得客戶端商品資料
+            const GetDataCustomer = (page = 1) => {
+                isloading.value = true;
+                axios.get(`${api.value}/api/${path.value}/products?page=${page}`)
+                    .then(res => {
+                        if (res.data.success) {
+                            product_data.products = res.data.products;
+                            page_data.pagination = res.data.pagination;
+                            isloading.value = false;
+                            return
+                        }
+                        alert(res.data.message);
+                    })
+                    .catch(err => {
+                        alert(err.message);
+                    })
+            };
+            // 取得單一商品細節
+            const GetSingleDetailCustomer = (id) => {
+                statusid.seemore = id;
+                axios.get(`${api.value}/api/${path.value}/product/${id}`)
+                    .then(res => {
+                        if (res.data.success) {
+                            modal_data.modal = res.data.product;
+                            statusid.seemore = '';
+                            statusmodal.value = true;
+                            return
+                        }
+                        alert(res.data.message);
+                    })
+                    .catch(err => {
+                        alert(err.message);
+                    })
+            };
+            // 加入購物車
+            const AddToCart = (id) => {
+                statusid.addcart = id;
+                iconloading.value = true;
+                cart_data.data.product_id = id;
+                axios.post(`${api.value}/api/${path.value}/cart`, cart_data)
+                    .then(res => {
+                        if (res.data.success) {
+                            statusid.addcart = '';
+                            iconloading.value = false;
+                            GetCart();
+                            return
+                        }
+                        alert(res.data.message);
+                    })
+                    .catch(err => {
+                        alert(err.message);
+                    })
+            };
+            // 更新購物車
+            const UpdateCart = (item) => {
+                statusid.updatecart = item.id;
+                cart_data.data.product_id = item.id;
+                cart_data.data.qty = item.qty;
+                axios.put(`${api.value}/api/${path.value}/cart/${item.id}`, cart_data)
+                    .then(res => {
+                        if (res.data.success) {
+                            statusid.updatecart = '';
+                            GetCart();
+                            return
+                        }
+                        alert(res.data.message);
+                    })
+                    .catch(err => {
+                        alert(err.message);
+                    })
+            };
+            // 刪除購物車 上面刪全部 下面刪單筆
+            const DelCart = (id = 1) => {
+                iconloading.value = true;
+                if (id == 1) {
+                    statusid.clearcart = id;
+                    axios.delete(`${api.value}/api/${path.value}/carts`)
+                        .then(res => {
+                            if (res.data.success) {
+                                statusid.clearcart = '';
+                                iconloading.value = false;
+                                GetCart();
+                                return
+                            }
+                            alert(res.data.message);
+                        })
+                        .catch(err => {
+                            alert(err.message);
+                        })
+                } else {
+                    statusid.deleteitem = id;
+                    axios.delete(`${api.value}/api/${path.value}/cart/${id}`)
+                        .then(res => {
+                            if (res.data.success) {
+                                statusid.deleteitem = '';
+                                iconloading.value = false;
+                                GetCart();
+                                return
+                            }
+                            alert(res.data.message);
+                        })
+                        .catch(err => {
+                            alert(err.message);
+                        })
+                }
+            }
+            // 取得購物車清單
+            const GetCart = () => {
+                isloading.value = true;
+                axios.get(`${api.value}/api/${path.value}/cart`)
+                    .then(res => {
+                        if (res.data.success) {
+                            cart_list_data.data = res.data.data;
+                            isloading.value = false;
+                            return
+                        }
+                        alert(res.data.message);
+                    })
+                    .catch(err => {
+                        alert(err.message);
+                    })
+            };
+            // 結帳付款
+            const Checkout = () => {
+                statusid.checkout = true;
+                if (cart_list_data.data.carts.length != 0) {
+                    isloading.value = true;
+                    axios.post(`${api.value}/api/${path.value}/order`, user_data)
+                        .then(res => {
+                            if (res.data.success) {
+                                statusid.checkout = false;
+                                isloading.value = false;
+                                alert(res.data.message);
+                                return
+                            }
+                            alert(res.data.message);
+                        })
+                        .catch(err => {
+                            statusid.checkout = false;
+                            alert(err.message);
+                        })
+                    return
+                } else {
+                    statusid.checkout = false;
+                    alert("購物車無商品");
+                }
+            };
+            // 驗證手機的函式
+            const ValidateTel = (value) => {
+                if (!value) {
+                    return '電話號碼為必填';
+                }
+                if (!/^09\d{8}$/.test(value)) {
+                    return '電話號碼格式錯誤';
+                }
+                return true;
+            };
+
+
+
+            // --------生命週期---------
+            // 進入畫面就執行
+            onMounted(() => {
+                GetDataCustomer();
+                GetCart();
+            });
+
+            // 東西要丟出去才能使用 用不到就不丟
+            return {
+                isloading,
+                iconloading,
+                statusid,
+                statusmodal,
+                product_data,
+                page_data,
+                modal_data,
+                cart_data,
+                cart_list_data,
+                user_data,
+                modal_close,
+                GetSingleDetailCustomer,
+                AddToCart,
+                UpdateCart,
+                DelCart,
+                Checkout,
+                ValidateTel,
+            }
+        }
+    });
+
+    // 註冊驗證元件
+    app.component('VForm', VeeValidate.Form);
+    app.component('VField', VeeValidate.Field);
+    app.component('ErrorMessage', VeeValidate.ErrorMessage);
+    // 註冊讀取效果
+    app.component('loading', VueLoading);
+    // 就掛到mount上面
+    app.mount('#app');
+</script>
+
+<style>
+    img {
+        max-width: 300px;
+        height: auto;
+    }
+
+    .modal-more {
+        background: rgba(0, 0, 0, 0.719);
+        color:#fff;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+</style>
+
+</html>
